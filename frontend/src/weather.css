@@ -1,0 +1,170 @@
+.weather-container {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch; /* s'étend sur toute la largeur */
+  width: 100vw; /* largeur complète de la fenêtre */
+  margin: 0; /* aucun espace autour */
+  padding: 0;
+}
+
+/* ---- CARTE HORLOGE ---- */
+.card {
+  width: 100%; 
+  max-width: none; 
+  height: 180px;
+  background: linear-gradient(135deg, #141e30, #243b55);
+  border-radius: 0;
+  box-shadow: rgba(0, 0, 0, 0.6) 0px 5px 40px inset,
+              rgba(0, 0, 0, 0.9) 0px -5px 60px inset;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+
+  position: relative;
+  color: white;
+  overflow: hidden;
+  padding: 15px 0;
+  transition: transform 0.25s ease, box-shadow 0.3s ease-in-out;
+
+  margin-bottom: 30px;
+}
+
+/* ---- CARTE HORLOGE ---- */
+
+
+.card:hover {
+  box-shadow: rgba(0, 0, 0, 1) 0px 8px 60px inset,
+              rgba(0, 0, 0, 0.8) 0px -8px 120px inset;
+}
+
+/* Date en haut */
+.day-text {
+  font-size: 26px;
+  font-weight: 600;
+  margin: 0 0 10px 0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  text-align: center;
+  opacity: 0.95;
+}
+
+/* Heure principale */
+.time-text {
+  font-size: 60px;
+  font-weight: 700;
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* AM/PM à côté de l’heure */
+.time-sub-text {
+  font-size: 24px;
+  opacity: 0.85;
+}
+
+/* Icône lune */
+.moon {
+  font-size: 40px;
+  position: absolute;
+  right: 25px;
+  top: 20px;
+  opacity: 0.85;
+  transition: transform 0.3s ease, opacity 0.3s ease-in-out;
+}
+
+.card:hover .moon {
+  transform: scale(1.15);
+  opacity: 1;
+}
+
+
+/* ---- BARRE DE RECHERCHE ---- */
+.weather-form {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 35px;
+  justify-content: center;
+}
+
+.weather-form input {
+  padding: 14px;
+  width: 350px;
+  font-size: 17px;
+  border-radius: 10px;
+  border: 1px solid #bbb;
+}
+
+.weather-form button {
+  padding: 14px 25px;
+  font-size: 16px;
+  background: #1d75a0;
+  color: white;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+}
+
+/* ---- CARTE METEO ---- */
+.weather-card {
+  width: 100%;        
+  max-width: 1100px;  
+  margin: 0 auto 40px auto; 
+  background: #f3f7fb;
+  padding: 35px 40px;
+  border-radius: 18px;
+  display: flex;
+  justify-content: space-between;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+
+
+/* Gauche */
+.weather-left {
+  display: flex;
+  align-items: center;
+  gap: 25px;
+}
+
+.weather-icon {
+  width: 90px;
+}
+
+.temp {
+  font-size: 70px;
+  font-weight: 700;
+}
+
+.realfeel {
+  font-size: 20px;
+  opacity: 0.7;
+  margin-top: -10px;
+}
+
+.desc {
+  margin-top: 10px;
+  font-size: 19px;
+  font-weight: 500;
+}
+
+/* Droite */
+.weather-right {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  font-size: 18px;
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  width: 280px;
+}
+
+.good {
+  color: green;
+  font-weight: bold;
+}
