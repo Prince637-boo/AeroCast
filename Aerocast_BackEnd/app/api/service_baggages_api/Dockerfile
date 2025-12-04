@@ -1,26 +1,22 @@
-# Utilise une image Python légère comme base
 FROM ghcr.io/astral-sh/uv:python3.11-bookworm
 
-# Définit le répertoire de travail dans le conteneur
 WORKDIR /app
 
-# Installe curl pour les healthchecks
 RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
+# Installer uv
 RUN pip install uv
 
-# Copie les fichiers de gestion de dépendances
-COPY uv.lock .
-COPY pyproject.toml .
+# Copier les fichiers de dépendances
+COPY uv.lock pyproject.toml ./
 
-# Installe les dépendances avec uv
+# Installer les dépendances avec uv
 RUN uv sync --frozen
 
-# Copie le reste du code de l'application
+# Copier le reste du code
 COPY . .
 
-# Expose le port sur lequel l'application s'exécute
 EXPOSE 8000
 
-# Commande pour lancer le serveur Uvicorn au démarrage du conteneur
-CMD ["uv", "run", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Lancer l'application FastAPI avec uvicorn via uv
+CMD ["uv", "run", "--", "python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
