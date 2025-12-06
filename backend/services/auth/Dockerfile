@@ -1,35 +1,17 @@
-# base image
-FROM python:3.11-slim
+FROM python:3.11 
 
-# system deps
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    libpq-dev \
-    curl \
- && rm -rf /var/lib/apt/lists/*
+ENV PYTHONUNBUFFERED=1
 
-# create user for security
-RUN useradd --create-home appuser
-WORKDIR /home/appuser/app
-USER appuser
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
-# copy sources
-COPY --chown=appuser:appuser pyproject.toml uv.lock ./
-COPY --chown=appuser:appuser services/services_common/ ./services_common/
-COPY --chown=appuser:appuser services/auth ./services/auth
+WORKDIR /app
 
-# Install dependencies inside venv
-ENV VIRTUAL_ENV=/home/appuser/.venv
-RUN python -m venv $VIRTUAL_ENV
-ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+COPY pyproject.toml uv.lock ./
+COPY libs ./libs
+COPY services/auth ./services/auth
 
-
-RUN pip install --upgrade pip
-RUN pip install fastapi uvicorn[standard] sqlalchemy[asyncio] asyncpg alembic pydantic passlib[bcrypt] python-jose[cryptography] aioredis
-
-# copy entrypoint
-COPY --chown=appuser:appuser docker/entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+RUN uv pip install --system --no-cache -e .
 
 EXPOSE 8000
-ENTRYPOINT ["/entrypoint.sh"]
+
+CMD ["uvicorn", "services.auth.main:app", "--host", "0.0.0.0", "--port", "8000"]

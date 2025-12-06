@@ -27,7 +27,6 @@ AsyncTestingSessionLocal = sessionmaker(
     class_=AsyncSession,
 )
 
-
 async def init_test_db():
     """
     Create all tables in the in-memory DB.

@@ -1,27 +1,31 @@
-version: "3.8"
 services:
+  # -------------------------------
+  # Database
+  # -------------------------------
   postgres:
-    image: postgres:15
+    image: postgres:16
+    container_name: aerocast_postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: appdb
-      POSTGRES_USER: app
-      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-change-me}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - aerocast_db_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
+
 
   redis:
     image: redis:7
-    restart: unless-stopped
-    volumes: []
+    container_name: redis
+    ports:
+      - "6379:6379"
 
   minio:
-    image: minio/minio:RELEASE.2025-01-01T00-00-00Z
+    image: minio/minio:latest
     command: server /data
     environment:
       MINIO_ROOT_USER: ${S3_ACCESS_KEY:-minioadmin}
@@ -33,6 +37,9 @@ services:
       interval: 10s
       retries: 3
 
+  # -------------------------------
+  # Services Application
+  # -------------------------------
   auth:
     build:
       context: .
@@ -43,6 +50,11 @@ services:
         condition: service_healthy
     ports:
       - "8001:8000"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.auth.rule=Host(`auth.localhost`) && PathPrefix(`/`)"
+      - "traefik.http.routers.auth.entrypoints=web"
+      - "traefik.http.services.auth.loadbalancer.server.port=8000"
 
   baggage:
     build:
@@ -53,20 +65,25 @@ services:
       - postgres
     ports:
       - "8002:8000"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.baggage.rule=Host(`baggage.localhost`) && PathPrefix(`/`)"
+      - "traefik.http.routers.baggage.entrypoints=web"
+      - "traefik.http.services.baggage.loadbalancer.server.port=8000"
 
-  weather:
-    build:
-      context: .
-      dockerfile: services/weather/Dockerfile
-    env_file: .env
-    depends_on:
-      - postgres
-      - redis
-    ports:
-      - "8003:8000"
-  
+  # weather:
+  #   build:
+  #     context: .
+  #     dockerfile: services/weather/Dockerfile
+  #   env_file: .env
+  #   depends_on:
+  #     - postgres
+  #     - redis
+  #   ports:
+  #     - "8003:8000"
+
   # -------------------------------
-  # RabbitMQ (Message broker)
+  # Message Broker
   # -------------------------------
   rabbitmq:
     image: rabbitmq:3-management
@@ -79,16 +96,7 @@ services:
       RABBITMQ_DEFAULT_PASS: admin
 
   # -------------------------------
-  # Redis (Cache + Pub/Sub)
-  # -------------------------------
-  redis:
-    image: redis:7
-    container_name: redis
-    ports:
-      - "6379:6379"
-
-  # -------------------------------
-  # ElasticSearch
+  # ELK Stack
   # -------------------------------
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.13.0
@@ -98,21 +106,19 @@ services:
       - xpack.security.enabled=false
     ports:
       - "9200:9200"
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
 
-  # -------------------------------
-  # Kibana
-  # -------------------------------
   kibana:
     image: docker.elastic.co/kibana/kibana:8.13.0
     container_name: kibana
-    ports:
-      - "5601:5601"
     environment:
       - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    ports:
+      - "5601:5601"
+    depends_on:
+      - elasticsearch
 
-  # -------------------------------
-  # Logstash
-  # -------------------------------
   logstash:
     image: docker.elastic.co/logstash/logstash:8.13.0
     container_name: logstash
@@ -120,7 +126,38 @@ services:
       - ./logstash/pipeline:/usr/share/logstash/pipeline
     ports:
       - "5044:5044"
-  
+    depends_on:
+      - elasticsearch
+
+  # -------------------------------
+  # OpenTelemetry Collector
+  # -------------------------------
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    container_name: otel-collector
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml
+    ports:
+      - "4317:4317" # OTLP gRPC
+      - "4318:4318" # OTLP HTTP
+    depends_on:
+      - elasticsearch
+
+  # -------------------------------
+  # Prometheus
+  # -------------------------------
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+
+  # -------------------------------
+  # Traefik
+  # -------------------------------
   traefik:
     image: traefik:v2.10
     command:
@@ -137,23 +174,6 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./traefik/dynamic.yml:/etc/traefik/dynamic.yml:ro
 
-  auth:
-    image: auth:latest
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.auth.rule=Host(`auth.localhost`) && PathPrefix(`/`)"
-      - "traefik.http.routers.auth.entrypoints=web"
-      - "traefik.http.services.auth.loadbalancer.server.port=8000"
-
-  baggage:
-    image: baggage:latest
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.baggage.rule=Host(`baggage.localhost`) && PathPrefix(`/`)"
-      - "traefik.http.routers.baggage.entrypoints=web"
-      - "traefik.http.services.baggage.loadbalancer.server.port=8000"
-
-
-
 volumes:
-  pgdata:
+  aerocast_db_data:
+  esdata:

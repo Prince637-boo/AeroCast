@@ -1,0 +1,21 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+      http:
+
+exporters:
+  logging:
+    loglevel: debug
+  elasticsearch:
+    endpoints: ["http://elasticsearch:9200"]
+    index: "otel-traces"
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      exporters: [logging, elasticsearch]
+    metrics:
+      receivers: [otlp]
+      exporters: [logging]

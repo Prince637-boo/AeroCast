@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 
 from libs.common.database import engine
-from services.baggages.otel_setup import init_tracing
+from backend.services.baggage.otel_setup import init_tracing
 
 from services.baggages.routers.baggage import router as baggage_router
 from services.baggages.routers.admin import router as admin_router
