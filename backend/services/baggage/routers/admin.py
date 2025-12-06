@@ -8,12 +8,13 @@ import logging
 import time
 
 from libs.common.database import get_db
-from services.auth.core.roles import allow, UserRole
-from services.baggages.models.baggage import Baggage
-from services.baggages.models.baggage_event import BaggageEvent
-from services.baggages.models.scan_log import ScanLog
-from services.baggages.schemas.baggage import BaggageOut
-from services.baggages.core.enums import BaggageStatus
+from services.auth.dependencies.permissions import allow
+from services.auth.core.roles import UserRole
+from ..models.bag import Baggage
+from ..models.baggage_event import BaggageEvent
+from ..models.scan_log import ScanLog
+from ..schemas.bag import BaggageOut
+from ..core.enums import BaggageStatus
 
 router = APIRouter(
     prefix="/admin/baggages",

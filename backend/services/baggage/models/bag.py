@@ -5,7 +5,7 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
 from libs.common.base import Base
-from services.baggages.core.enums import BaggageStatus
+from ..core.enums import BaggageStatus
 
 class Baggage(Base):
     __tablename__ = "baggages"

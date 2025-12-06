@@ -1,12 +1,12 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from services.baggages.models.baggage import Baggage
-from services.baggages.models.baggage_event import BaggageEvent
-from services.baggages.core.enums import BaggageStatus
+from .models.bag import Baggage
+from .models.baggage_event import BaggageEvent
+from .core.enums import BaggageStatus
 import uuid
 
-from services.baggages.models.scan_log import ScanLog
-from services.baggages.core.utils import generate_qr_code
+from .models.scan_log import ScanLog
+from .core.utils import generate_qr_code
 
 
 async def create_baggage(db: AsyncSession, payload):

@@ -6,14 +6,14 @@ import logging
 import time
 
 from libs.common.database import get_db
-from services.auth.dependencies.auth import get_current_user
+from services.auth.dependencies.user import get_current_user
 from services.auth.dependencies.permissions import allow
 from services.auth.core.roles import UserRole
 
-from services.baggage.schemas.baggage import BaggageCreate, BaggageOut
-from services.baggage.schemas.baggage_event import BaggageEventCreate
-from services.baggage.schemas.scan_log import ScanLogCreate, ScanLogOut
-from services.baggage.service.baggage_service import (
+from ..schemas.bag import BaggageCreate, BaggageOut
+from ..schemas.baggage_event import BaggageEventCreate
+from ..schemas.scan_log import ScanLogCreate, ScanLogOut
+from ..baggage_service import (
     create_baggage,
     update_baggage_status,
     get_baggage,

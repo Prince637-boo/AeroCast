@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from services.auth.routers.auth import router as auth_router
-from services.auth.middleware.logging import LoggingMiddleware
+from .routers.auth import router as auth_router
+from .middleware.logging import LoggingMiddleware
 
 app = FastAPI(title="Auth Service", version="1.0.0")
 

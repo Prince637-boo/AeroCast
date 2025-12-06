@@ -37,39 +37,39 @@ services:
       interval: 10s
       retries: 3
 
-  # -------------------------------
-  # Services Application
-  # -------------------------------
-  auth:
-    build:
-      context: .
-      dockerfile: services/auth/Dockerfile
-    env_file: .env
-    depends_on:
-      postgres:
-        condition: service_healthy
-    ports:
-      - "8001:8000"
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.auth.rule=Host(`auth.localhost`) && PathPrefix(`/`)"
-      - "traefik.http.routers.auth.entrypoints=web"
-      - "traefik.http.services.auth.loadbalancer.server.port=8000"
+  # # -------------------------------
+  # # Services Application
+  # # -------------------------------
+  # auth:
+  #   build:
+  #     context: .
+  #     dockerfile: services/auth/Dockerfile
+  #   env_file: .env
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #   ports:
+  #     - "8001:8000"
+  #   labels:
+  #     - "traefik.enable=true"
+  #     - "traefik.http.routers.auth.rule=Host(`auth.localhost`) && PathPrefix(`/`)"
+  #     - "traefik.http.routers.auth.entrypoints=web"
+  #     - "traefik.http.services.auth.loadbalancer.server.port=8000"
 
-  baggage:
-    build:
-      context: .
-      dockerfile: services/baggage/Dockerfile
-    env_file: .env
-    depends_on:
-      - postgres
-    ports:
-      - "8002:8000"
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.baggage.rule=Host(`baggage.localhost`) && PathPrefix(`/`)"
-      - "traefik.http.routers.baggage.entrypoints=web"
-      - "traefik.http.services.baggage.loadbalancer.server.port=8000"
+  # baggage:
+  #   build:
+  #     context: .
+  #     dockerfile: services/baggage/Dockerfile
+  #   env_file: .env
+  #   depends_on:
+  #     - postgres
+  #   ports:
+  #     - "8002:8000"
+  #   labels:
+  #     - "traefik.enable=true"
+  #     - "traefik.http.routers.baggage.rule=Host(`baggage.localhost`) && PathPrefix(`/`)"
+  #     - "traefik.http.routers.baggage.entrypoints=web"
+  #     - "traefik.http.services.baggage.loadbalancer.server.port=8000"
 
   # weather:
   #   build:
@@ -143,6 +143,15 @@ services:
       - "4318:4318" # OTLP HTTP
     depends_on:
       - elasticsearch
+
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: jaeger
+    ports:
+      - "16686:16686"  # UI Jaeger
+      - "4318:4318"    # OTLP HTTP
+      - "6831:6831/udp" # Jaeger Thrift UDP
+
 
   # -------------------------------
   # Prometheus

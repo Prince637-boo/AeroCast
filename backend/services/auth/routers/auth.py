@@ -8,16 +8,16 @@ from opentelemetry import trace
 from opentelemetry.trace.status import Status, StatusCode
 
 from libs.common.database import get_db
-from services.auth.models.user import User
-from services.auth.models.refresh_token import RefreshToken
-from services.auth.schemas.user import UserCreate, UserLogin, UserOut
-from services.auth.schemas.company import CompanyCreate, CompanyOut
-from services.auth.core.hashing import hash_password, verify_password
-from services.auth.core.jwt import create_access_token, generate_refresh_token, hash_refresh_token
-from services.auth.core.roles import UserRole
-from services.auth.dependencies.user import get_current_user
-from services.auth.dependencies.permissions import allow
-from services.auth.service.user_service import create_user, get_user_by_email, get_user_by_id, create_company_and_user, disable_user
+from ..models.user import User
+from ..models.refresh_token import RefreshToken
+from ..schemas.user import UserCreate, UserOut
+from ..schemas.company import CompanyCreate, CompanyOut
+from ..core.hashing import hash_password, verify_password
+from ..core.jwt import create_access_token, generate_refresh_token, hash_refresh_token
+from ..core.roles import UserRole
+from ..dependencies.user import get_current_user
+from ..dependencies.permissions import allow
+from ..service_user import create_user, get_user_by_email, get_user_by_id, create_company_and_user, disable_user
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -74,7 +74,7 @@ async def register_user(payload: UserCreate, db: AsyncSession = Depends(get_db))
 
 
 @router.post("/login")
-async def login(payload: UserLogin, request: Request, db: AsyncSession = Depends(get_db)):
+async def login(payload, request: Request, db: AsyncSession = Depends(get_db)):
     async def _login():
         q = await db.execute(User.__table__.select().where(User.email == payload.email))
         user: User = q.scalar()

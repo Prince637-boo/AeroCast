@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional
-from services.baggages.core.enums import BaggageStatus
+from ..core.enums import BaggageStatus
 
 class BaggageCreate(BaseModel):
     owner_id: str
