@@ -3,14 +3,17 @@ name = "aviation-backend"
 version = "0.1.0"
 description = "Backend monorepo for aviation project (auth, baggage, weather)"
 authors = [
-  { name="Adzanto Trésor", email="tresoradzanto7@gmail.com" }
+  { name = "Adzanto Trésor", email = "tresoradzanto7@gmail.com" },
+  { name = "TCHAGODOMOU Prince", email = "i8674333@gmail.com" }
 ]
+
 requires-python = ">=3.11"
 dependencies = [
     "aioredis>=2.0.1",
     "alembic>=1.17.2",
     "asyncpg>=0.31.0",
     "fastapi>=0.123.8",
+    "celery>=5.3.4",
     "opentelemetry-api>=1.39.0",
     "opentelemetry-exporter-otlp>=1.39.0",
     "opentelemetry-instrumentation-aio-pika>=0.60b0",
@@ -31,6 +34,11 @@ dependencies = [
     "qrcode>=8.2",
     "redis[async]>=7.1.0",
 ]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["services*", "libs*"]
+
 
 [tool.uv]
 # optional uv config

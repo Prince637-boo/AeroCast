@@ -11,7 +11,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
-      - "5432:5432"
+      - "5433:5433"
     volumes:
       - aerocast_db_data:/var/lib/postgresql/data
     healthcheck:
@@ -71,16 +71,23 @@ services:
   #     - "traefik.http.routers.baggage.entrypoints=web"
   #     - "traefik.http.services.baggage.loadbalancer.server.port=8000"
 
-  # weather:
-  #   build:
-  #     context: .
-  #     dockerfile: services/weather/Dockerfile
-  #   env_file: .env
-  #   depends_on:
-  #     - postgres
-  #     - redis
-  #   ports:
-  #     - "8003:8000"
+  weather:
+    build:
+      context: .
+      dockerfile: services/weather/Dockerfile
+    env_file: .env
+    depends_on:
+      - postgres
+      - rabbitmq
+    ports:
+      - "8003:8000"
+    volumes:
+      - ./services/weather:/app/services/weather
+      - ./libs:/app/libs
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.weather.rule=Host(`weather.localhost`)"
+      - "traefik.http.services.weather.loadbalancer.server.port=8000"
 
   # -------------------------------
   # Message Broker
@@ -140,7 +147,7 @@ services:
       - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml
     ports:
       - "4317:4317" # OTLP gRPC
-      - "4318:4318" # OTLP HTTP
+      - "4320:4320" # OTLP HTTP
     depends_on:
       - elasticsearch
 
@@ -168,7 +175,7 @@ services:
   # Traefik
   # -------------------------------
   traefik:
-    image: traefik:v2.10
+    image: traefik:latest
     command:
       - --api.insecure=true
       - --providers.docker=true
@@ -182,6 +189,30 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./traefik/dynamic.yml:/etc/traefik/dynamic.yml:ro
+    
+  # -------------------------------
+  # Celery
+  # -------------------------------
+  celery-worker:
+    build:
+      context: .
+      dockerfile: services/weather/Dockerfile  
+    command: celery -A tasks worker --loglevel=info
+    depends_on:
+      - rabbitmq
+      - postgres
+      - weather
+
+  celery-beat:
+    build:
+      context: .
+      dockerfile: services/weather/Dockerfile  
+    command: celery -A tasks beat --loglevel=info
+    depends_on:
+      - rabbitmq
+      - postgres
+      - weather
+    env_file: .env
 
 volumes:
   aerocast_db_data:
