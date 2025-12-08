@@ -1,4 +1,5 @@
 # tests/baggages/test_baggage_routes.py
+import uuid
 import pytest
 from httpx import AsyncClient, ASGITransport
 from fastapi import status
