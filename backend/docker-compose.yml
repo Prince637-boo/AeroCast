@@ -77,8 +77,8 @@ services:
       dockerfile: services/weather/Dockerfile
     env_file: .env
     environment:
-    - RUN_MIGRATIONS=true
-    - SERVICE_NAME=services.weather
+      - RUN_MIGRATIONS=true
+      - SERVICE_NAME=services.weather
     depends_on:
       - postgres
       - rabbitmq
@@ -91,6 +91,28 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.weather.rule=Host(`weather.localhost`)"
       - "traefik.http.services.weather.loadbalancer.server.port=8000"
+  
+  orientation:
+    build:
+      context:
+      dockerfile: services/orientation/Dockerfile
+    env_file: .env
+    environment:
+      - RUN_MIGRATIONS=true
+      - SERVICE_NAME=services.orientation
+    depends_on:
+      - postgres
+      - rabbitmq
+    ports:
+      - "8004:8000"
+    volumes:
+      - ./services/orientation:/app/services/orientation
+      - ./libs:/app/libs
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.orientation.rule=Host(`orientation.localhost`)"
+      - "traefik.http.services.orientation.loadbalancer.server.port=8000"
+  
 
   # -------------------------------
   # Message Broker
