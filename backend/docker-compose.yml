@@ -94,7 +94,7 @@ services:
   
   orientation:
     build:
-      context:
+      context: .
       dockerfile: services/orientation/Dockerfile
     env_file: .env
     environment:

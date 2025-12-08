@@ -77,6 +77,8 @@ class TestOrientationAPI:
             
             assert response.status_code == 200
             data = response.json()
+            # orientation error deb.
+            print(data)
             assert data["success"] is True
             assert data["numero_vol"] == "AF1234"
             assert "instructions" in data

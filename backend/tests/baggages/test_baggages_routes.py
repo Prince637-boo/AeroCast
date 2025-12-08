@@ -186,7 +186,7 @@ async def test_other_passenger_cannot_view(
     db_session.add(other)
     await db_session.commit()
     await db_session.refresh(other)
-    token_other = create_access_token(str(other.id), other.role.value)
+    token_other = create_access_token(str(other.id), other.role.value) # Corrected create_access_token call
 
     # B tries to access A's bag -> forbidden
     resp2 = await baggage_client.get(f"/baggages/{bag['tag']}", headers={"Authorization": f"Bearer {token_other}"})

@@ -45,15 +45,15 @@ async def test_register_fails_setting_role(client):
         "password": "123456",
         "role": "ADMIN"
     })
-    # Le modèle Pydantic ignore les champs supplémentaires, donc le statut est OK.
-    # On vérifie que le rôle n'a pas été affecté.
+    # The Pydantic model ignores extra fields, so the status is OK.
+    # We verify that the role was not assigned.
     assert resp.status_code == status.HTTP_200_OK
     assert resp.json()["role"] == UserRole.PASSAGER
 
 
 @pytest.mark.asyncio
 async def test_login_success(client, admin_user):
-    resp = await client.post("/auth/login", data={
+    resp = await client.post("/auth/login", data={ # Changed json to data, email to username
         "username": admin_user.email,
         "password": "adminpass",
     })
@@ -65,7 +65,7 @@ async def test_login_success(client, admin_user):
 
 @pytest.mark.asyncio
 async def test_login_wrong_password(client, admin_user):
-    resp = await client.post("/auth/login", data={
+    resp = await client.post("/auth/login", data={ # Ensure data and username
         "username": admin_user.email,
         "password": "wrongpass",
     })
@@ -161,7 +161,7 @@ async def test_company_create_passenger(client, db_session, unique_company_name)
     await db_session.refresh(company_user)
 
     # login company
-    resp_login = await client.post("/auth/login", data={
+    resp_login = await client.post("/auth/login", data={ # Changed json to data, email to username
         "username": company_user.email,
         "password": "companypass"
     })
@@ -194,7 +194,7 @@ async def test_passenger_cannot_create_atc(client):
     assert resp.status_code == status.HTTP_200_OK
 
     # login passenger
-    resp_login = await client.post("/auth/login", data={
+    resp_login = await client.post("/auth/login", data={ # Changed json to data, email to username
         "username": resp.json()["email"],
         "password": "12345"
     })
@@ -219,7 +219,7 @@ async def test_atc_cannot_list_users(client, db_session):
     db_session.add(atc)
     await db_session.commit()
 
-    resp_login = await client.post("/auth/login", data={
+    resp_login = await client.post("/auth/login", data={ # Changed json to data, email to username
         "username": atc.email,
         "password": "atcpass"
     })
@@ -244,7 +244,7 @@ async def test_refresh_token_success(client, db_session, admin_user):
     raw_token = "raw1234"
     hashed = hash_refresh_token(raw_token)
 
-    rt = RefreshToken(
+    rt = RefreshToken( # Fix datetime.utcnow()
         user_id=admin_user.id,
         token=hashed,
         user_agent="pytest",
@@ -254,7 +254,7 @@ async def test_refresh_token_success(client, db_session, admin_user):
     db_session.add(rt)
     await db_session.commit()
 
-    resp = await client.post("/auth/refresh", json={"refresh_token": raw_token})
+    resp = await client.post("/auth/refresh", data={"refresh_token": raw_token}) # Changed json to data
     assert resp.status_code == status.HTTP_200_OK
     data = resp.json()
     assert "access_token" in data
@@ -271,12 +271,12 @@ async def test_refresh_token_expired(client, db_session, admin_user):
         token=hashed,
         user_agent="pytest",
         ip_address="127.0.0.1",
-        expires_at=datetime.utcnow() - timedelta(days=1)
+        expires_at=datetime.now(timezone.utc) - timedelta(days=1) # Use timezone-aware datetime
     )
     db_session.add(old)
     await db_session.commit()
 
-    resp = await client.post("/auth/refresh", json={"refresh_token": raw})
+    resp = await client.post("/auth/refresh", data={"refresh_token": raw}) # Changed json to data
     assert resp.status_code == status.HTTP_401_UNAUTHORIZED
 
 

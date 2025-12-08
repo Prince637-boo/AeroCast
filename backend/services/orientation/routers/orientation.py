@@ -1,7 +1,7 @@
 from ..utils import generer_alertes, generer_instructions, log_orientation
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 
 from ..schemas.orientation import (
@@ -107,7 +107,7 @@ async def get_orientation(
         return OrientationResponse(
             success=True,
             numero_vol=numero_vol,
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc), # Use timezone-aware datetime
             situation=SituationSchema(**situation),
             instructions=[InstructionSchema(**inst) for inst in instructions],
             alertes=[AlerteSchema(**alert) for alert in alertes],
@@ -159,5 +159,5 @@ async def health_check():
     return {
         "status": "healthy",
         "service": "orientation-service",
-        "timestamp": datetime.utcnow().isoformat()
+        "timestamp": datetime.now(timezone.utc).isoformat() 
     }

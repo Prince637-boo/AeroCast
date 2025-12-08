@@ -1,13 +1,14 @@
 import pytest
 import pytest_asyncio
 import asyncio
+from datetime import datetime, timezone # Import timezone
 from httpx import AsyncClient, ASGITransport
 from services.auth.main import app
 from libs.common.database import get_db
 from tests.utils.db import init_test_db, drop_test_db, AsyncTestingSessionLocal
 from sqlalchemy.ext.asyncio import AsyncSession
 from services.auth.models.user import User, UserRole
-from libs.common.security import hash_password
+from services.auth.core.hashing import hash_password # Corrected import
 from services.auth.core.jwt import create_access_token
 from services.auth.models.company import Company
 
@@ -66,7 +67,7 @@ async def admin_user(db_session):
 async def admin_token(client, admin_user):
     # Login admin et récupère access_token
     resp = await client.post("/auth/login", data={
-        "username": admin_user.email,
+        "username": admin_user.email, # Ensure username is used
         "password": "adminpass"
     })
     data = resp.json()
@@ -117,10 +118,10 @@ async def create_users(db_session: AsyncSession):
 
     # Tokens
     tokens = {
-        "admin": create_access_token(data={"sub": str(admin.id), "role": admin.role.value}),
-        "company": create_access_token(data={"sub": str(company_user.id), "role": company_user.role.value}),
-        "atc": create_access_token(data={"sub": str(atc.id), "role": atc.role.value}),
-        "pax": create_access_token(data={"sub": str(pax.id), "role": pax.role.value}),
+        "admin": create_access_token(str(admin.id), admin.role.value), # Corrected signature
+        "company": create_access_token(str(company_user.id), company_user.role.value), # Corrected signature
+        "atc": create_access_token(str(atc.id), atc.role.value), # Corrected signature
+        "pax": create_access_token(str(pax.id), pax.role.value), # Corrected signature
     }
 
     return {"users": {"admin": admin, "company": company_user, "atc": atc, "pax": pax},
