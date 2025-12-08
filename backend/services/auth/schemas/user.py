@@ -1,3 +1,4 @@
+from uuid import UUID
 from pydantic import BaseModel, EmailStr
 from typing import Optional
 from services.auth.core.roles import UserRole
@@ -8,7 +9,7 @@ class UserCreate(BaseModel):
     role: Optional[UserRole] = None 
 
 class UserOut(BaseModel):
-    id: str
+    id: UUID
     email: EmailStr
     role: UserRole
     is_active: bool

@@ -1,7 +1,7 @@
 from typing import Dict, Any, List, Optional, Tuple
 import logging
 
-from backend.libs.common.config import Settings
+from ..core.config import Settings
 
 logger = logging.getLogger(__name__)
 

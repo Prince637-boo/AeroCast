@@ -13,7 +13,7 @@ from services.auth.core.roles import UserRole
 from ..models.bag import Baggage
 from ..models.baggage_event import BaggageEvent
 from ..models.scan_log import ScanLog
-from ..schemas.bag import BaggageOut
+from ..schemas.bag import BaggageOut as BaggageOutSchema
 from ..core.enums import BaggageStatus
 
 router = APIRouter(
@@ -84,7 +84,7 @@ async def list_baggages(
             "total": total,
             "page": page,
             "size": size,
-            "items": [BaggageOut.model_validate(b) for b in bags]
+            "items": [BaggageOutSchema.model_validate(b) for b in bags]
         }
 
     return await traced_route("list_baggages", _list)
@@ -114,7 +114,7 @@ async def baggage_detail(tag: str, db: AsyncSession = Depends(get_db)):
         scans = scans_q.scalars().all()
 
         return {
-            "baggage": BaggageOut.model_validate(baggage),
+            "baggage": BaggageOutSchema.model_validate(baggage),
             "events": [e.to_dict() for e in events],
             "scans": [s.to_dict() for s in scans],
         }

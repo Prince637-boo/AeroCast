@@ -1,7 +1,7 @@
 from asyncio.log import logger
 from typing import Optional
-from backend.services.orientation.core.decision_engine import DecisionEngine
-from backend.services.orientation.schemas.orientation import ActionType, TypeInstruction
+from .core.decision_engine import DecisionEngine
+from .schemas.orientation import ActionType, TypeInstruction
 
 
 def generer_instructions(

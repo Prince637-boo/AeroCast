@@ -1,10 +1,10 @@
 from functools import lru_cache
 from typing import Generator
-from core.config import get_settings, Settings
-from core.decision_engine import DecisionEngine
-from services.meteo_client import MeteoServiceClient
-from services.bagage_client import BagageServiceClient
-from services.vol_client import VolServiceClient
+from ..core.config import get_settings, Settings
+from ..core.decision_engine import DecisionEngine
+from ..services.meteo_client import MeteoServiceClient
+from ..services.baggage_client import BagageServiceClient
+from ..services.vol_client import VolServiceClient
 
 @lru_cache()
 def get_decision_engine() -> DecisionEngine:

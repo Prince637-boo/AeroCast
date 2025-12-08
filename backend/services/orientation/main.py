@@ -3,9 +3,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import logging
 
-from core.config import get_settings
-from routers import orientation
-from middleware.logging import setup_logging
+from .core.config import get_settings
+from .routers import orientation
+from .middleware.logging import setup_logging
 
 # Configuration du logging
 setup_logging()
@@ -17,9 +17,9 @@ settings = get_settings()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Gestion du cycle de vie de l'application"""
-    logger.info(f"🚀 Démarrage du service {settings.SERVICE_NAME} v{settings.VERSION}")
+    logger.info(f"Démarrage du service {settings.SERVICE_NAME} v{settings.VERSION}")
     yield
-    logger.info("🛑 Arrêt du service")
+    logger.info("Arrêt du service")
 
 
 # Création de l'application
@@ -53,14 +53,4 @@ async def root():
         "version": settings.VERSION,
         "status": "operational",
         "documentation": "/docs"
-    }
-
-
-@app.get("/health", tags=["Health"])
-async def health():
-    """Endpoint de santé global"""
-    return {
-        "status": "healthy",
-        "service": settings.SERVICE_NAME,
-        "version": settings.VERSION
     }

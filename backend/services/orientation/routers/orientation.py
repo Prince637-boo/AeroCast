@@ -1,10 +1,10 @@
-from backend.services.orientation.utils import generer_alertes, generer_instructions, log_orientation
+from ..utils import generer_alertes, generer_instructions, log_orientation
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from typing import Optional
 from datetime import datetime
 import logging
 
-from schemas.orientation import (
+from ..schemas.orientation import (
     OrientationRequest,
     OrientationResponse,
     InstructionSchema,
@@ -14,17 +14,18 @@ from schemas.orientation import (
     TypeInstruction,
     ActionType
 )
-from core.decision_engine import DecisionEngine
-from services.meteo_client import MeteoServiceClient
-from services.bagage_client import BagageServiceClient
-from services.vol_client import VolServiceClient
-from dependencies.services import (
+from ..core.decision_engine import DecisionEngine
+from ..services.meteo_client import MeteoServiceClient
+from ..services.baggage_client import BagageServiceClient
+from ..services.vol_client import VolServiceClient
+from ..dependencies.services import (
     get_decision_engine,
     get_meteo_client,
     get_bagage_client,
     get_vol_client
 )
-from dependencies.validation import OrientationValidator
+from ..dependencies.validation import OrientationValidator
+
 
 router = APIRouter(
     prefix="/api/orientation",

@@ -85,6 +85,7 @@ async def change_status(
 
     return await traced_route(f"change_status:{tag}", _update)
 
+# Routes pour les users
 
 @router.get("/{tag}", response_model=BaggageOut)
 async def get_baggage_info(
@@ -93,6 +94,9 @@ async def get_baggage_info(
     user=Depends(get_current_user),
     baggage=Depends(get_existing_baggage),
 ):
+    """
+    Permet a un passager de consulter le statut de ses bagages spécifiques
+    """
     async def _get():
         if user.role == UserRole.PASSAGER and baggage.owner_id != user.id:
             raise HTTPException(status_code=403, detail="Not allowed")

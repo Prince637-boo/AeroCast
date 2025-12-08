@@ -1,73 +1,128 @@
-# tests/conftest.py
 import pytest
+import pytest_asyncio
 import asyncio
+from httpx import AsyncClient, ASGITransport
+from services.auth.main import app
+from libs.common.database import get_db
+from tests.utils.db import init_test_db, drop_test_db, AsyncTestingSessionLocal
+from sqlalchemy.ext.asyncio import AsyncSession
+from services.auth.models.user import User, UserRole
+from libs.common.security import hash_password
+from services.auth.core.jwt import create_access_token
+from services.auth.models.company import Company
 
-from fastapi import FastAPI
-from httpx import AsyncClient
 
-from tests.utils.db import (
-    init_test_db,
-    drop_test_db,
-    override_get_db,
-)
-from tests.utils.http import get_test_client
-
-# ============================================
-# GLOBAL ASYNC EVENT LOOP (for pytest)
-# ============================================
 @pytest.fixture(scope="session")
 def event_loop():
-    loop = asyncio.get_event_loop_policy().new_event_loop()
+    loop = asyncio.new_event_loop()
     yield loop
     loop.close()
 
 
-# ============================================
-# TEST DATABASE SETUP
-# ============================================
-@pytest.fixture(scope="session", autouse=True)
+@pytest_asyncio.fixture(scope="session", autouse=True)
 async def prepare_test_database():
-    """
-    Create the test DB once for all tests.
-    """
     await init_test_db()
     yield
     await drop_test_db()
 
 
-# ============================================
-# DB SESSION FIXTURE (per-test)
-# ============================================
-@pytest.fixture
+@pytest_asyncio.fixture
 async def db_session():
-    """
-    One session per test, automatically rolled back.
-    """
-    from tests.utils.db import AsyncTestingSessionLocal
-
     async with AsyncTestingSessionLocal() as session:
-        transaction = await session.begin()
         yield session
-        await transaction.rollback()
+        await session.rollback()
 
 
-# ============================================
-# GENERIC CLIENT FIXTURE
-# ============================================
-@pytest.fixture
+
+@pytest_asyncio.fixture
 async def client(db_session):
-    """
-    HTTP client available for any service.
-    You must override get_db inside the test file.
-    """
-    # Import must be inside to allow multi-service usage
-    from libs.common.database import get_db
-    from main import app  # or service-specific main if microservice
-
-    # Override the dependency
     app.dependency_overrides[get_db] = lambda: db_session
 
-    async with AsyncClient(app=app, base_url="http://test") as c:
+    transport = ASGITransport(app=app)
+
+    async with AsyncClient(transport=transport, base_url="http://test") as c:
         yield c
 
     app.dependency_overrides.clear()
+
+import uuid
+
+@pytest_asyncio.fixture
+async def admin_user(db_session):
+    admin = User(
+        email=f"admin_{uuid.uuid4()}@test.com",
+        hashed_password=hash_password("adminpass"),
+        role=UserRole.ADMIN,
+        is_active=True,
+    )
+    db_session.add(admin)
+    await db_session.commit()
+    await db_session.refresh(admin)
+    return admin
+
+
+
+@pytest_asyncio.fixture
+async def admin_token(client, admin_user):
+    # Login admin et récupère access_token
+    resp = await client.post("/auth/login", data={
+        "username": admin_user.email,
+        "password": "adminpass"
+    })
+    data = resp.json()
+    assert "access_token" in data, "Login failed: no access_token returned"
+    return data["access_token"]
+
+
+@pytest_asyncio.fixture
+async def create_users(db_session: AsyncSession):
+    """
+    Crée admin, company, ATC et passenger avec tokens uniques.
+    """
+    # Nom de compagnie unique
+    company_name = f"TestAir-{uuid.uuid4().hex[:6]}"
+    company = Company(name=company_name)
+    db_session.add(company)
+    await db_session.flush()
+
+    # Utilisateurs
+    admin = User(
+        email=f"admin_{uuid.uuid4().hex[:6]}@test.com",
+        hashed_password=hash_password("adminpass"),
+        role=UserRole.ADMIN,
+        is_active=True
+    )
+    company_user = User(
+        email=f"company_{uuid.uuid4().hex[:6]}@test.com",
+        hashed_password=hash_password("companypass"),
+        role=UserRole.COMPAGNIE,
+        company=company,
+        is_active=True
+    )
+    atc = User(
+        email=f"atc_{uuid.uuid4().hex[:6]}@test.com",
+        hashed_password=hash_password("atcpass"),
+        role=UserRole.ATC,
+        is_active=True
+    )
+    pax = User(
+        email=f"pax_{uuid.uuid4().hex[:6]}@test.com",
+        hashed_password=hash_password("paxpass"),
+        role=UserRole.PASSAGER,
+        is_active=True
+    )
+
+    db_session.add_all([admin, company_user, atc, pax])
+    await db_session.commit()
+
+    # Tokens
+    tokens = {
+        "admin": create_access_token(data={"sub": str(admin.id), "role": admin.role.value}),
+        "company": create_access_token(data={"sub": str(company_user.id), "role": company_user.role.value}),
+        "atc": create_access_token(data={"sub": str(atc.id), "role": atc.role.value}),
+        "pax": create_access_token(data={"sub": str(pax.id), "role": pax.role.value}),
+    }
+
+    return {"users": {"admin": admin, "company": company_user, "atc": atc, "pax": pax},
+            "company": company,
+            "tokens": tokens}

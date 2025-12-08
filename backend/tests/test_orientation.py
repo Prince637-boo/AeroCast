@@ -1,37 +1,46 @@
 import pytest
-from fastapi.testclient import TestClient
+from httpx import AsyncClient, ASGITransport
 from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, patch
 
-from main import app
-from core.decision_engine import DecisionEngine
-from core.config import Settings
+from services.orientation.main import app
+from services.orientation.core.decision_engine import DecisionEngine
+from services.orientation.core.config import Settings
+from libs.common.database import get_db
 
-client = TestClient(app)
+
+@pytest.fixture
+async def orientation_client(db_session):
+    """Crée un client de test pour l'application d'orientation."""
+    app.dependency_overrides[get_db] = lambda: db_session
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as c:
+        yield c
+    app.dependency_overrides.clear()
 
 
+@pytest.mark.asyncio
 class TestOrientationAPI:
     """Tests pour l'API d'orientation"""
     
-    def test_health_check(self):
+    async def test_health_check(self, orientation_client: AsyncClient):
         """Test du endpoint de santé"""
-        response = client.get("/health")
+        response = await orientation_client.get("/api/orientation/health")
         assert response.status_code == 200
         assert response.json()["status"] == "healthy"
     
-    def test_root(self):
+    async def test_root(self, orientation_client: AsyncClient):
         """Test du endpoint racine"""
-        response = client.get("/")
+        response = await orientation_client.get("/")
         assert response.status_code == 200
         assert "service" in response.json()
     
-    @pytest.mark.asyncio
-    async def test_get_orientation_success(self):
+    async def test_get_orientation_success(self, orientation_client: AsyncClient):
         """Test réussi de récupération d'orientation"""
         # Mock des clients de services
-        with patch('routers.orientation.get_meteo_client') as mock_meteo, \
-             patch('routers.orientation.get_bagage_client') as mock_bagage, \
-             patch('routers.orientation.get_vol_client') as mock_vol:
+        with patch('services.orientation.routers.orientation.get_meteo_client') as mock_meteo, \
+             patch('services.orientation.routers.orientation.get_bagage_client') as mock_bagage, \
+             patch('services.orientation.routers.orientation.get_vol_client') as mock_vol:
             
             # Configuration des mocks
             mock_meteo.return_value.get_meteo_summary = AsyncMock(return_value={
@@ -61,7 +70,7 @@ class TestOrientationAPI:
             })
             
             # Appel de l'API
-            response = client.get("/api/orientation/AF1234/BAG123456")
+            response = await orientation_client.get("/api/orientation/AF1234/BAG123456")
             
             assert response.status_code == 200
             data = response.json()
@@ -71,31 +80,46 @@ class TestOrientationAPI:
             assert "alertes" in data
             assert "parcours" in data
     
-    def test_get_orientation_invalid_vol(self):
+    async def test_get_orientation_invalid_vol(self, orientation_client: AsyncClient):
         """Test avec un numéro de vol invalide"""
-        response = client.get("/api/orientation/AB/BAG123456")
+        response = await orientation_client.get("/api/orientation/AB/BAG123456")
         assert response.status_code == 400
     
-    def test_get_orientation_invalid_bagage(self):
+    async def test_get_orientation_invalid_bagage(self, orientation_client: AsyncClient):
         """Test avec un ID bagage invalide"""
-        response = client.get("/api/orientation/AF1234/AB")
+        response = await orientation_client.get("/api/orientation/AF1234/AB")
         assert response.status_code == 400
     
-    def test_post_orientation(self):
+    async def test_post_orientation(self, orientation_client: AsyncClient):
         """Test de l'endpoint POST"""
-        with patch('routers.orientation.get_meteo_client'), \
-             patch('routers.orientation.get_bagage_client'), \
-             patch('routers.orientation.get_vol_client'):
+        with patch('services.orientation.routers.orientation.get_meteo_client') as mock_meteo, \
+             patch('services.orientation.routers.orientation.get_bagage_client') as mock_bagage, \
+             patch('services.orientation.routers.orientation.get_vol_client') as mock_vol:
+            
+            # Configuration des mocks pour un cas nominal
+            mock_meteo.return_value.get_meteo_summary = AsyncMock(return_value={
+                "niveau_alerte": "faible", "impact": {}
+            })
+            mock_bagage.return_value.get_bagage_status = AsyncMock(return_value={
+                "statut": "EN_SOUTE"
+            })
+            mock_vol.return_value.get_vol_info = AsyncMock(return_value={
+                "heure_depart": (datetime.now() + timedelta(hours=2)).isoformat(),
+                "porte_originale": "A1",
+                "porte_actuelle": "A1"
+            })
             
             payload = {
                 "numero_vol": "AF1234",
                 "id_bagage": "BAG123456",
                 "position_estimee": "entree"
             }
+            response = await orientation_client.post("/api/orientation/", json=payload)
             
-            response = client.post("/api/orientation/", json=payload)
-            # Le test complet nécessiterait de mocker tous les services
-            assert response.status_code in [200, 500]  # 500 si les services ne répondent pas
+            assert response.status_code == 200
+            data = response.json()
+            assert data["success"] is True
+            assert data["numero_vol"] == "AF1234"
 
 
 class TestDecisionEngine:
@@ -206,4 +230,3 @@ class TestDecisionEngine:
         
         # Pas de zone d'attente en mode critique
         assert not any("Zone d'Attente" in etape.get("nom", "") for etape in parcours)
-
