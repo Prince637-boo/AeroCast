@@ -1,4 +1,5 @@
-from pydantic import BaseModel, EmailStr
+from uuid import UUID
+from pydantic import BaseModel, EmailStr, ConfigDict
 from typing import Optional
 
 class CompanyCreate(BaseModel):
@@ -7,10 +8,9 @@ class CompanyCreate(BaseModel):
     contact_email: Optional[EmailStr] = None
 
 class CompanyOut(BaseModel):
-    id: str
+    id: UUID
     name: str
     legal_id: Optional[str]
     contact_email: Optional[EmailStr]
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

@@ -13,7 +13,7 @@ class UserOut(BaseModel):
     email: EmailStr
     role: UserRole
     is_active: bool
-    company_id: Optional[str] = None
+    company_id: Optional[UUID] = None
 
     class Config:
         from_attributes = True

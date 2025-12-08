@@ -1,3 +1,4 @@
+from uuid import UUID
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import jwt, JWTError
@@ -20,8 +21,15 @@ async def get_current_user(token: str = Depends(oauth2_scheme),
 
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
-        user_id: str = payload.get("sub")
-        if user_id is None:
+        user_id_str: str = payload.get("sub")
+        
+        if user_id_str is None:
+            raise credentials_exception
+        
+        try:
+            user_id = UUID(user_id_str)
+        except (ValueError, AttributeError):
+            # Si la conversion échoue, le token est invalide
             raise credentials_exception
 
     except JWTError:

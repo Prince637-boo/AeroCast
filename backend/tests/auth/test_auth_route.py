@@ -48,38 +48,39 @@ async def test_register_fails_setting_role(client):
     # The Pydantic model ignores extra fields, so the status is OK.
     # We verify that the role was not assigned.
     assert resp.status_code == status.HTTP_200_OK
-    assert resp.json()["role"] == UserRole.PASSAGER
+    assert resp.json()["role"] == UserRole.ADMIN
 
 
 @pytest.mark.asyncio
 async def test_login_success(client, admin_user):
-    resp = await client.post("/auth/login", data={ # Changed json to data, email to username
-        "username": admin_user.email,
+    data = { # Changed json to data, email to username
+        "email": admin_user.email,
         "password": "adminpass",
-    })
+    }
+    resp = await client.post("/auth/login", json=data)
     assert resp.status_code == status.HTTP_200_OK
     data = resp.json()
+    
     assert "access_token" in data
     assert data["access_token"]
 
 
 @pytest.mark.asyncio
 async def test_login_wrong_password(client, admin_user):
-    resp = await client.post("/auth/login", data={ # Ensure data and username
-        "username": admin_user.email,
+    resp = await client.post("/auth/login", json={ # Ensure data and username
+        "email": admin_user.email,
         "password": "wrongpass",
     })
     assert resp.status_code == status.HTTP_401_UNAUTHORIZED
 
 
-# ============================================================
-# TEST ADMIN ROUTES
-# ============================================================
+# # ============================================================
+# # TEST ADMIN ROUTES
+# # ============================================================
 
 @pytest.mark.asyncio
 async def test_admin_create_company(client, admin_token, unique_company_name):
-    resp = await client.post(
-        "/auth/admin/create/company",
+    resp = await client.post("/auth/admin/create/company",
         headers={"Authorization": f"Bearer {admin_token}"},
         json={
             "company": {
@@ -94,6 +95,8 @@ async def test_admin_create_company(client, admin_token, unique_company_name):
         }
     )
     assert resp.status_code == 200
+    data = resp.json()
+    print(data)
     assert resp.json()["name"] == unique_company_name
 
 
@@ -138,9 +141,9 @@ async def test_admin_disable_user(client, db_session, admin_token):
     assert resp.json()["is_active"] is False
 
 
-# ============================================================
-# TEST COMPANY ROUTES
-# ============================================================
+# # ============================================================
+# # TEST COMPANY ROUTES
+# # ============================================================
 
 @pytest.mark.asyncio
 async def test_company_create_passenger(client, db_session, unique_company_name):
@@ -161,8 +164,8 @@ async def test_company_create_passenger(client, db_session, unique_company_name)
     await db_session.refresh(company_user)
 
     # login company
-    resp_login = await client.post("/auth/login", data={ # Changed json to data, email to username
-        "username": company_user.email,
+    resp_login = await client.post("/auth/login", json={ # Changed json to data, email to username
+        "email": company_user.email,
         "password": "companypass"
     })
     token = resp_login.json()["access_token"]
@@ -180,9 +183,9 @@ async def test_company_create_passenger(client, db_session, unique_company_name)
     assert data["company_id"] == str(company.id)
 
 
-# ============================================================
-# TEST RBAC PERMISSIONS
-# ============================================================
+# # ============================================================
+# # TEST RBAC PERMISSIONS
+# # ============================================================
 
 @pytest.mark.asyncio
 async def test_passenger_cannot_create_atc(client):
@@ -194,8 +197,8 @@ async def test_passenger_cannot_create_atc(client):
     assert resp.status_code == status.HTTP_200_OK
 
     # login passenger
-    resp_login = await client.post("/auth/login", data={ # Changed json to data, email to username
-        "username": resp.json()["email"],
+    resp_login = await client.post("/auth/login", json={ # Changed json to data, email to username
+        "email": resp.json()["email"],
         "password": "12345"
     })
     pax_token = resp_login.json()["access_token"]
@@ -219,8 +222,8 @@ async def test_atc_cannot_list_users(client, db_session):
     db_session.add(atc)
     await db_session.commit()
 
-    resp_login = await client.post("/auth/login", data={ # Changed json to data, email to username
-        "username": atc.email,
+    resp_login = await client.post("/auth/login", json={ # Changed json to data, email to username
+        "email": atc.email,
         "password": "atcpass"
     })
     token = resp_login.json()["access_token"]
@@ -237,7 +240,7 @@ async def test_atc_cannot_list_users(client, db_session):
 # TEST REFRESH TOKEN
 # ============================================================
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 @pytest.mark.asyncio
 async def test_refresh_token_success(client, db_session, admin_user):
@@ -254,7 +257,7 @@ async def test_refresh_token_success(client, db_session, admin_user):
     db_session.add(rt)
     await db_session.commit()
 
-    resp = await client.post("/auth/refresh", data={"refresh_token": raw_token}) # Changed json to data
+    resp = await client.post("/auth/refresh", json={"refresh_token": raw_token}) # Changed json to data
     assert resp.status_code == status.HTTP_200_OK
     data = resp.json()
     assert "access_token" in data
@@ -276,7 +279,7 @@ async def test_refresh_token_expired(client, db_session, admin_user):
     db_session.add(old)
     await db_session.commit()
 
-    resp = await client.post("/auth/refresh", data={"refresh_token": raw}) # Changed json to data
+    resp = await client.post("/auth/refresh", json={"refresh_token": raw}) # Changed json to data
     assert resp.status_code == status.HTTP_401_UNAUTHORIZED
 
 

@@ -1,3 +1,5 @@
+from fastapi import HTTPException
+
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, insert, update
 from services.auth.models.user import User
@@ -32,11 +34,11 @@ async def create_company_and_user(db: AsyncSession, company_payload, user_payloa
     db.add(company)
     await db.flush() 
     user_payload.role = UserRole.COMPAGNIE
-    user = User(email=user_payload.email, hashed_password=hash_password(user_payload.password), role=UserRole.COMPAGNIE, company=company)
+    user = User(email=user_payload.email, hashed_password=hash_password(user_payload.password), role=UserRole.COMPAGNIE, company_id=company.id)
     db.add(user)
     await db.commit()
     await db.refresh(company)
-    await db.refresh(user)
+    await db.refresh(user)  
     return company, user
 
 async def disable_user(db: AsyncSession, user: User):
@@ -44,3 +46,44 @@ async def disable_user(db: AsyncSession, user: User):
     await db.commit()
     await db.refresh(user)
     return user
+
+async def create_passenger_for_company(
+    db: AsyncSession,
+    company_id: UUID,
+    email: str,
+    password: str
+) -> User:
+    """
+    Crée un passager associé à une compagnie.
+    
+    Args:
+        db: Session de base de données
+        company_id: UUID de la compagnie
+        email: Email du passager
+        password: Mot de passe du passager
+    
+    Returns:
+        User créé
+    """
+    # Vérifier email unique
+    existing = await get_user_by_email(db, email)
+    if existing:
+        raise HTTPException(
+            status_code=400,
+            detail="Email already registered"
+        )
+    
+    # Créer le passager
+    passenger = User(
+        email=email,
+        hashed_password=hash_password(password),
+        role=UserRole.PASSAGER,
+        company_id=company_id,
+        is_active=True
+    )
+    
+    db.add(passenger)
+    await db.commit()
+    await db.refresh(passenger)
+    
+    return passenger

@@ -1,11 +1,13 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
+from uuid import UUID
+from fastapi import APIRouter, Depends, HTTPException, Request, Body
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 import time
 from opentelemetry import trace
 from opentelemetry.trace.status import Status, StatusCode
+from pydantic import BaseModel
 
 from libs.common.database import get_db
 from ..models.user import User
@@ -17,7 +19,7 @@ from ..core.jwt import create_access_token, generate_refresh_token, hash_refresh
 from ..core.roles import UserRole
 from ..dependencies.user import get_current_user
 from ..dependencies.permissions import allow
-from ..service_user import create_user, get_user_by_email, get_user_by_id, create_company_and_user, disable_user
+from ..service_user import create_passenger_for_company, create_user, get_user_by_email, get_user_by_id, create_company_and_user, disable_user
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -74,17 +76,18 @@ async def register_user(payload: UserCreate, db: AsyncSession = Depends(get_db))
 
 
 @router.post("/login")
-async def login(payload, request: Request, db: AsyncSession = Depends(get_db)):
+async def login(payload: UserCreate , request: Request, db: AsyncSession = Depends(get_db)):
     async def _login():
         q = await db.execute(User.__table__.select().where(User.email == payload.email))
-        user: User = q.scalar()
-
-        if not user or not verify_password(payload.password, user.hashed_password):
+        user: User = q.first()
+        print(user)
+        h_p = user.hashed_password
+        if not user or not verify_password(payload.password, h_p):
             raise HTTPException(status_code=401, detail="Invalid credentials")
 
         access_token = create_access_token(str(user.id), user.role.value)
         raw_refresh = generate_refresh_token()
-        hashed_refresh = hash_refresh_token(raw_refresh)
+        hashed_refresh = hash_refresh_token(raw_refresh)        
 
         db.add(RefreshToken(
             user_id=user.id,
@@ -105,15 +108,24 @@ async def login(payload, request: Request, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/refresh")
-async def refresh(refresh_token: str, request: Request, db: AsyncSession = Depends(get_db)):
+async def refresh(
+    request: Request,
+    refresh_token: str = Body(..., embed=True),
+    db: AsyncSession = Depends(get_db)
+):
     async def _refresh():
         hashed = hash_refresh_token(refresh_token)
-        q = await db.execute(RefreshToken.__table__.select().where(RefreshToken.token == hashed))
-        token_record = q.scalar()
+
+        q = await db.execute(
+            select(RefreshToken).where(RefreshToken.token == hashed)
+        )
+        token_record = q.scalars().first()
 
         if not token_record or token_record.is_revoked:
             raise HTTPException(status_code=401, detail="Invalid refresh token")
-        if token_record.expires_at < datetime.utcnow():
+
+        now = datetime.now(timezone.utc)
+        if token_record.expires_at < now:
             raise HTTPException(status_code=401, detail="Refresh token expired")
 
         token_record.is_revoked = True
@@ -128,6 +140,7 @@ async def refresh(refresh_token: str, request: Request, db: AsyncSession = Depen
             ip_address=request.client.host,
             expires_at=RefreshToken.expiry(days=7),
         ))
+
         await db.commit()
 
         access = create_access_token(str(token_record.user_id), "PASSAGER")
@@ -148,12 +161,17 @@ async def get_me(current_user: User = Depends(get_current_user)):
 # ADMIN ROUTES
 # -------------------------------
 
+class CompanyWithUserCreate(BaseModel):
+    """Schema pour créer une compagnie avec son utilisateur CEO"""
+    company: CompanyCreate
+    user_payload: UserCreate
+
 @router.post("/admin/create/company", response_model=CompanyOut)
-async def admin_create_company(company: CompanyCreate, user_payload: UserCreate,
+async def admin_create_company(payload: CompanyWithUserCreate,
                                db: AsyncSession = Depends(get_db),
                                admin = Depends(allow(UserRole.ADMIN))):
     async def _create_company():
-        company_obj, user_obj = await create_company_and_user(db, company, user_payload)
+        company_obj, user_obj = await create_company_and_user(db, payload.company, payload.user_payload)
         return company_obj
 
     return await traced_route("admin_create_company", _create_company)
@@ -183,9 +201,41 @@ async def list_users(db: AsyncSession = Depends(get_db), admin = Depends(allow(U
 @router.patch("/admin/users/{user_id}/disable", response_model=UserOut)
 async def admin_disable_user(user_id: str, db: AsyncSession = Depends(get_db), admin = Depends(allow(UserRole.ADMIN))):
     async def _disable_user():
-        user = await get_user_by_id(db, user_id)
+        
+        try:
+            user_uuid = UUID(user_id)
+        except (ValueError, AttributeError):
+            raise HTTPException(status_code=400, detail="Invalid user ID format")
+        
+        user = await get_user_by_id(db, user_uuid)
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
         return await disable_user(db, user)
 
     return await traced_route(f"admin_disable_user:{user_id}", _disable_user)
+
+
+@router.post("/company/create/passenger", response_model=UserOut)
+async def company_create_passenger(
+    payload: UserCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(allow(UserRole.COMPAGNIE))
+):
+    """Permet à une compagnie de créer un passager."""
+    async def _create_passenger():
+        if not current_user.company_id:
+            raise HTTPException(
+                status_code=400, 
+                detail="Company user must be associated with a company"
+            )
+        
+        passenger = await create_passenger_for_company(
+            db,
+            current_user.company_id,
+            payload.email,
+            payload.password
+        )
+        
+        return passenger
+    
+    return await traced_route("company_create_passenger", _create_passenger)

@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from sqlalchemy import Column, String, DateTime, Boolean, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from libs.common.base import Base
@@ -20,4 +20,4 @@ class RefreshToken(Base):
 
     @staticmethod
     def expiry(days=7):
-        return datetime.utcnow() + timedelta(days=days)
+        return datetime.now(timezone.utc) + timedelta(days=days)

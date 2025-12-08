@@ -66,8 +66,8 @@ async def admin_user(db_session):
 @pytest_asyncio.fixture
 async def admin_token(client, admin_user):
     # Login admin et récupère access_token
-    resp = await client.post("/auth/login", data={
-        "username": admin_user.email, # Ensure username is used
+    resp = await client.post("/auth/login", json={
+        "email": admin_user.email,
         "password": "adminpass"
     })
     data = resp.json()
