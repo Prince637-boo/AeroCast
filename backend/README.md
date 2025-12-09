@@ -14,10 +14,10 @@ AeroCast est construit autour de plusieurs microservices **FastAPI**, chacun ét
 
 | Service | Rôle |
 |--------|------|
-| `auth-service` | Authentification, gestion des utilisateurs, RBAC |
-| `baggage-service` | Traçabilité des bagages (QR, RFID, GPS, ADS-B ready) |
-| `weather-service` | Données météo temps réel + mise à jour automatique |
-| `worker-service` | Consommateurs RabbitMQ et tâches asynchrones |
+| `auth` | Authentification, gestion des utilisateurs, RBAC |
+| `baggage` | Traçabilité des bagages (QR, RFID, GPS, ADS-B ready) |
+| `weather` | Données météo temps réel + mise à jour automatique |
+| `orientation` | Orientation des passagers |
 
 ---
 
@@ -43,9 +43,9 @@ AeroCast est construit autour de plusieurs microservices **FastAPI**, chacun ét
 - **Jaeger (traces)**
 - **Prometheus (metrics)**
 - **ELK Stack**
-  - Elasticsearch
-  - Logstash
-  - Kibana
+- **Elasticsearch**
+- **Logstash**
+- **Kibana**
 
 ### Stockage
 - **MinIO (S3 Compatible)**
@@ -58,24 +58,6 @@ AeroCast est construit autour de plusieurs microservices **FastAPI**, chacun ét
 
 ---
 
-## 📁 Structure du Projet
-
-backend/
-├── services/
-│ ├── auth/
-│ ├── baggage/
-│ ├── weather/
-│ └── workers/
-├── libs/
-│ └── common/
-├── docker/
-│ └── entrypoint.sh
-├── docker-compose.yml
-├── otel-collector-config.yaml
-└── prometheus.yml
-
-
----
 
 ## 🚀 Démarrage rapide
 
