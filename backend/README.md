@@ -61,6 +61,12 @@ AeroCast est construit autour de plusieurs microservices **FastAPI**, chacun ét
 
 ## 🚀 Démarrage rapide
 
+### Important: pour lancer sans docker: 
+Se placer à la racine du dossier backend et faire: 
+```bash
+python -m uvicorn services.<service_exple_auth>.main:app --reload --port <port_service_exple_8001>
+```
+
 ### Prérequis
 
 - Docker / Docker Compose
