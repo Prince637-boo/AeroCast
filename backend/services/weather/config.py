@@ -18,6 +18,12 @@ class Settings:
             'schedule': 3600.0,  # Exécute toutes les heures (en secondes)
         }
     }
+    
+    # Lieux d'intérêt pour la récupération météo périodique
+    INTEREST_LOCATIONS = [
+        {"name": "Paris", "latitude": 48.8566, "longitude": 2.3522},
+        {"name": "New York", "latitude": 40.7128, "longitude": -74.0060},
+        {"name": "Tokyo", "latitude": 35.6895, "longitude": 139.6917},
+    ]
 
 settings = Settings()
-

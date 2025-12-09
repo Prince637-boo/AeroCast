@@ -4,6 +4,9 @@ import logging
 from datetime import datetime, timezone # Import timezone
 from ..core.config import Settings
 
+from datetime import datetime, timezone
+from typing import Dict, Any
+
 logger = logging.getLogger(__name__)
 
 class DecisionEngine:
@@ -78,16 +81,30 @@ class DecisionEngine:
         
         return situation
     
+
     def _calculer_temps_disponible(self, vol_data: Dict[str, Any]) -> int:
-        """Calcule le temps disponible jusqu'au départ"""
+        """Calcule le temps disponible jusqu'au départ en minutes"""
         heure_depart_str = vol_data.get("heure_depart")
         if not heure_depart_str:
-            return 90  # Défaut: 90 minutes
-        
-        heure_depart = datetime.fromisoformat(heure_depart_str.replace('Z', '+00:00'))
-        maintenant = datetime.now(timezone.utc) # Use timezone-aware datetime
+            return 90  # Défaut si pas de date fournie
+
+        # Conversion en datetime aware
+        try:
+            heure_depart = datetime.fromisoformat(heure_depart_str)
+        except ValueError:
+            # si le format n'est pas correct
+            return 90
+
+        # Si naive, on considère UTC
+        if heure_depart.tzinfo is None:
+            heure_depart = heure_depart.replace(tzinfo=timezone.utc)
+
+        maintenant = datetime.now(timezone.utc)  # datetime aware en UTC
         temps_disponible = int((heure_depart - maintenant).total_seconds() / 60)
-        return max(0, temps_disponible)
+
+        # Toujours renvoyer une valeur non négative
+        return max(temps_disponible, 0)
+
     
     def choisir_meilleur_controle(
         self, 

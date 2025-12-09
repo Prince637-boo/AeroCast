@@ -1,6 +1,6 @@
-from http.client import HTTPException
+from fastapi import HTTPException
 from typing import Any, Dict
-import logging # Corrected import
+import logging 
 import httpx
 
 
