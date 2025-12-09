@@ -30,6 +30,10 @@ logger = logging.getLogger("baggage-service")
 # Dependable pour vérifier l'existence du bagage
 # -------------------------------
 async def get_existing_baggage(tag: str, db: AsyncSession = Depends(get_db)):
+    """
+    Vérifie si un bagage existe à partir de son tag.
+    Retourne le bagage si trouvé, sinon lève une HTTPException 404.
+    """
     baggage = await get_baggage(db, tag)
     if not baggage:
         raise HTTPException(status_code=404, detail="Baggage not found")
@@ -40,6 +44,10 @@ async def get_existing_baggage(tag: str, db: AsyncSession = Depends(get_db)):
 # Helper pour tracer et logger les routes
 # -------------------------------
 async def traced_route(span_name: str, func, *args, **kwargs):
+    """
+    Wrapper pour tracer l'exécution d'une route avec OpenTelemetry
+    et logger la durée et les exceptions.
+    """
     start_time = time.time()
     with tracer.start_as_current_span(span_name) as span:
         try:
@@ -63,16 +71,29 @@ async def traced_route(span_name: str, func, *args, **kwargs):
 # Routes
 # -------------------------------
 
-@router.post("/", response_model=BaggageOut)
+@router.post(
+    "/",
+    response_model=BaggageOut,
+    summary="Créer un nouveau bagage",
+    response_description="Détails du bagage créé"
+)
 async def add_baggage(
     payload: BaggageCreate,
     db: AsyncSession = Depends(get_db),
     company=Depends(allow(UserRole.COMPAGNIE, UserRole.ADMIN)),
 ):
+    """
+    Permet à une compagnie ou un admin de créer un nouveau bagage.
+    """
     return await traced_route("add_baggage", create_baggage, db, payload)
 
 
-@router.post("/{tag}/status", response_model=BaggageOut)
+@router.post(
+    "/{tag}/status",
+    response_model=BaggageOut,
+    summary="Mettre à jour le statut d'un bagage",
+    response_description="Bagage mis à jour"
+)
 async def change_status(
     tag: str,
     event: BaggageEventCreate,
@@ -80,14 +101,26 @@ async def change_status(
     user=Depends(allow(UserRole.COMPAGNIE, UserRole.ADMIN, UserRole.ATC)),
     baggage=Depends(get_existing_baggage),
 ):
+    """
+    Permet de mettre à jour le statut d'un bagage avec son emplacement.
+    Accessible par la compagnie, l'ATC ou l'admin.
+    """
     async def _update():
         return await update_baggage_status(db, baggage, event.status, event.location)
 
     return await traced_route(f"change_status:{tag}", _update)
 
-# Routes pour les users
 
-@router.get("/{tag}", response_model=BaggageOut)
+# -------------------------------
+# Routes pour les utilisateurs
+# -------------------------------
+
+@router.get(
+    "/{tag}",
+    response_model=BaggageOut,
+    summary="Consulter le statut d'un bagage",
+    response_description="Détails du bagage"
+)
 async def get_baggage_info(
     tag: str,
     db: AsyncSession = Depends(get_db),
@@ -95,7 +128,8 @@ async def get_baggage_info(
     baggage=Depends(get_existing_baggage),
 ):
     """
-    Permet a un passager de consulter le statut de ses bagages spécifiques
+    Permet à un passager de consulter le statut de son bagage spécifique.
+    Les compagnies et admins peuvent consulter n'importe quel bagage.
     """
     async def _get():
         if user.role == UserRole.PASSAGER and baggage.owner_id != user.id:
@@ -105,18 +139,31 @@ async def get_baggage_info(
     return await traced_route(f"get_baggage_info:{tag}", _get)
 
 
-@router.get("/my/list", response_model=list[BaggageOut])
+@router.get(
+    "/my/list",
+    response_model=list[BaggageOut],
+    summary="Liste des bagages du passager",
+    response_description="Liste des bagages appartenant au passager"
+)
 async def my_baggages(
     db: AsyncSession = Depends(get_db),
     user=Depends(allow(UserRole.PASSAGER)),
 ):
+    """
+    Retourne tous les bagages appartenant au passager connecté.
+    """
     async def _list():
         return await list_baggages_for_user(db, user.id)
 
     return await traced_route("my_baggages", _list)
 
 
-@router.post("/{tag}/scan", response_model=ScanLogOut)
+@router.post(
+    "/{tag}/scan",
+    response_model=ScanLogOut,
+    summary="Ajouter un log de scan pour un bagage",
+    response_description="Log de scan créé"
+)
 async def scan_baggage(
     tag: str,
     payload: ScanLogCreate,
@@ -124,6 +171,10 @@ async def scan_baggage(
     user=Depends(allow(UserRole.COMPAGNIE, UserRole.ATC, UserRole.ADMIN)),
     baggage=Depends(get_existing_baggage),
 ):
+    """
+    Permet à une compagnie, un ATC ou un admin de créer un log de scan
+    pour un bagage à un endroit précis avec des informations sur l'appareil.
+    """
     async def _scan():
         return await log_scan(
             db=db,

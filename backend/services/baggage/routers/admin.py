@@ -29,6 +29,10 @@ logger = logging.getLogger("admin-baggage-service")
 # Helper pour tracer et logger les routes
 # -------------------------------
 async def traced_route(span_name: str, func, *args, **kwargs):
+    """
+    Wrapper pour tracer les appels de route avec OpenTelemetry
+    et logger la durée d'exécution et les exceptions.
+    """
     start_time = time.time()
     with tracer.start_as_current_span(span_name) as span:
         try:
@@ -51,7 +55,12 @@ async def traced_route(span_name: str, func, *args, **kwargs):
 # -------------------------------
 # PAGINATED LIST / FILTERS
 # -------------------------------
-@router.get("/", dependencies=[Depends(allow(UserRole.ADMIN))])
+@router.get(
+    "/",
+    dependencies=[Depends(allow(UserRole.ADMIN))],
+    summary="Lister tous les bagages avec filtres et pagination",
+    response_description="Liste paginée des bagages"
+)
 async def list_baggages(
     db: AsyncSession = Depends(get_db),
     company_id: str | None = None,
@@ -61,6 +70,23 @@ async def list_baggages(
     page: int = 1,
     size: int = 50
 ):
+    """
+    Retourne une liste paginée de bagages.
+
+    **Paramètres :**
+    - `company_id` : filtrer par compagnie aérienne
+    - `status` : filtrer par statut du bagage
+    - `from_date` : bagages créés après cette date
+    - `to_date` : bagages créés avant cette date
+    - `page` : numéro de page pour la pagination
+    - `size` : nombre d'éléments par page
+
+    **Retour :**
+    - total : nombre total de bagages correspondant aux filtres
+    - page : page courante
+    - size : taille de page
+    - items : liste des bagages (schéma BaggageOut)
+    """
     async def _list():
         query = select(Baggage)
 
@@ -93,8 +119,24 @@ async def list_baggages(
 # -------------------------------
 # BAGGAGE DETAIL (with events + scan logs)
 # -------------------------------
-@router.get("/{tag}", dependencies=[Depends(allow(UserRole.ADMIN))])
+@router.get(
+    "/{tag}",
+    dependencies=[Depends(allow(UserRole.ADMIN))],
+    summary="Détails d'un bagage avec événements et scans",
+    response_description="Détails d'un bagage"
+)
 async def baggage_detail(tag: str, db: AsyncSession = Depends(get_db)):
+    """
+    Retourne les détails d'un bagage identifié par son tag.
+
+    **Paramètres :**
+    - `tag` : identifiant unique du bagage
+
+    **Retour :**
+    - baggage : informations principales du bagage (schéma BaggageOut)
+    - events : liste des événements associés au bagage
+    - scans : liste des logs de scans du bagage
+    """
     async def _detail():
         q = await db.execute(select(Baggage).where(Baggage.tag == tag))
         baggage = q.scalar_one_or_none()
@@ -125,8 +167,21 @@ async def baggage_detail(tag: str, db: AsyncSession = Depends(get_db)):
 # -------------------------------
 # STATISTICS / METRICS
 # -------------------------------
-@router.get("/metrics", dependencies=[Depends(allow(UserRole.ADMIN))])
+@router.get(
+    "/metrics",
+    dependencies=[Depends(allow(UserRole.ADMIN))],
+    summary="Statistiques des bagages",
+    response_description="Metrics sur les bagages"
+)
 async def baggage_metrics(db: AsyncSession = Depends(get_db)):
+    """
+    Retourne les métriques et statistiques des bagages.
+
+    **Retour :**
+    - created_last_24h : nombre de bagages créés au cours des dernières 24 heures
+    - scans_last_24h : nombre de scans enregistrés au cours des dernières 24 heures
+    - by_status : dictionnaire comptant les bagages par statut
+    """
     async def _metrics():
         now = datetime.utcnow()
         day_start = now - timedelta(days=1)
