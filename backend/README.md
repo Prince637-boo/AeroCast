@@ -1,127 +1,115 @@
-# ✈️ AeroCast – Backend (Microservices)
+# AeroCast – Backend (Microservices)
 
-Bienvenue sur le backend de **AeroCast**, une plateforme aéronautique intelligente dédiée à la **météorologie aérienne en temps réel** et à la **traçabilité avancée des bagages**.
+Bienvenue sur le backend de AeroCast, une plateforme aéronautique dédiée à la météorologie aérienne en temps réel et à la traçabilité avancée des bagages.
 
-Ce projet est basé sur une **architecture microservices moderne** orientée haute performance, observabilité et scalabilité.
+Le projet est basé sur une architecture microservices orientée haute performance, observabilité et scalabilité.
 
----
+## Architecture générale
 
-## 🏗️ Architecture Générale
+AeroCast est construit autour de plusieurs microservices FastAPI, chacun responsable d’un domaine métier spécifique.
 
-AeroCast est construit autour de plusieurs microservices **FastAPI**, chacun étant responsable d’un domaine métier précis.
+### Microservices actuels
 
-### Microservices Actuels
+| Service     | Rôle                                                        |
+|-------------|-------------------------------------------------------------|
+| [auth](./services/auth)        | Authentification, gestion des utilisateurs, RBAC            |
+| [baggage](./services/baggage)  | Traçabilité des bagages (QR, RFID, GPS, ADS‑B ready)        |
+| [weather](./services/weather)  | Données météo en temps réel et prévisions                   |
+| [orientation](./services/orientation) | Orientation des passagers selon bagages, vol et météo      |
 
-| Service | Rôle |
-|--------|------|
-| `auth` | Authentification, gestion des utilisateurs, RBAC |
-| `baggage` | Traçabilité des bagages (QR, RFID, GPS, ADS-B ready) |
-| `weather` | Données météo temps réel + mise à jour automatique |
-| `orientation` | Orientation des passagers |
+Chaque service fonctionne de manière indépendante, et peut être couplé via Redis Pub/Sub et RabbitMQ pour un écosystème temps réel.
 
----
+## Stack technique
 
-## ⚙️ Stack Technique
+- Framework & langage
+    - FastAPI
+    - Python 3.11+
+    - asyncio
+- Base de données
+    - PostgreSQL 16
+    - SQLAlchemy 2.0 (Async)
+    - Alembic (migrations)
+- Messaging & temps réel
+    - RabbitMQ (broker)
+    - Redis (cache + Pub/Sub)
+    - WebSockets (FastAPI)
+- Observabilité & monitoring
+    - OpenTelemetry (OTEL)
+    - Jaeger (traces)
+    - Prometheus (metrics)
+    - ELK (Elasticsearch, Logstash, Kibana)
+- Stockage
+    - MinIO (S3 compatible)
+- Conteneurisation & infra
+    - Docker, Docker Compose
+    - Traefik (reverse proxy / API gateway)
+    - uv (gestion des dépendances)
 
-### Framework & Langage
-- **FastAPI**
-- **Python 3.11+**
-- **Asyncio**
-
-### Base de données
-- **PostgreSQL 16**
-- **SQLAlchemy 2.0 (Async)**
-- **Alembic (migrations)**
-
-### Messaging & Temps réel
-- **RabbitMQ** (broker de messages)
-- **Redis** (cache + Pub/Sub temps réel)
-- **WebSockets** (FastAPI)
-
-### Observabilité & Monitoring
-- **OpenTelemetry (OTEL)**
-- **Jaeger (traces)**
-- **Prometheus (metrics)**
-- **ELK Stack**
-- **Elasticsearch**
-- **Logstash**
-- **Kibana**
-
-### Stockage
-- **MinIO (S3 Compatible)**
-
-### Conteneurisation & Infra
-- **Docker**
-- **Docker Compose**
-- **Traefik (Reverse Proxy + Gateway API)**
-- **uv (gestion ultra-performante des dépendances)**
-
----
-
-
-## 🚀 Démarrage rapide
-
-### Important: pour lancer sans docker: 
-Se placer à la racine du dossier backend et faire: 
-```bash
-python -m uvicorn services.<service_exple_auth>.main:app --reload --port <port_service_exple_8001>
-```
+## Démarrage rapide
 
 ### Prérequis
-
 - Docker / Docker Compose
-- uv
+- uv (gestion des dépendances)
 - Python 3.11+
-- PostgreSQL client (optionnel)
-- Un fichier `.env`
+- Client PostgreSQL (optionnel)
+- Fichier `.env`
 
----
-
-### 1. Créer le fichier `.env`
-
+### 1. Créer le fichier .env
 ```bash
 cp .env.example .env
 ```
+Configurer les variables d’environnement (PostgreSQL, Redis, RabbitMQ, clés API, etc.).
 
 ### 2. Lancer la stack complète
-
 ```bash
 docker compose up --build
 ```
 
 ### 3. Lancer un seul service
-
-Exemple : service auth uniquement
-
+Exemple : lancer uniquement le service `auth`
 ```bash
 docker compose up auth
 ```
 
-### 🧪 Tests
+### 4. Lancer en local sans Docker
+Se placer à la racine du service désiré et exécuter :
+```bash
+uv run services.<nom_service>.main:app --reload --port <port>
+```
+Exemple pour le service météo :
+```bash
+uv run services.weather.main:app --reload --port 8003
+```
 
-Les tests sont faits avec Pytest.
+## Tests
 
+Les tests utilisent pytest :
 ```bash
 pytest
 ```
+Chaque microservice contient un dossier `tests/` dédié.
 
+## Documentation interne (Swagger)
 
-## 📖 Documentation interne
+Chaque microservice expose sa documentation FastAPI automatiquement.
 
-Chaque microservice expose sa documentation automatique FastAPI :
+| Service   | URL docs                      |
+|-----------|-------------------------------|
+| Auth      | [http://localhost:8001/docs](http://localhost:8001/docs)    |
+| Bagages   | [http://localhost:8002/docs](http://localhost:8002/docs)    |
+| Météo     | [http://localhost:8003/docs](http://localhost:8003/docs)    |
+| Orientation | [http://localhost:8004/docs](http://localhost:8004/docs)  |
 
-Auth	http://localhost:8001/docs
-Bagages http://localhost:8002/docs
-Météo   http://localhost:8003/docs
+## Observabilité
 
-## 📡 Observabilité
+- Jaeger (traces) : [http://localhost:16686](http://localhost:16686)  
+- Prometheus (metrics) : [http://localhost:9090](http://localhost:9090)  
+- Kibana (logs) : [http://localhost:5601](http://localhost:5601)
 
-Jaeger (Traces)
-http://localhost:16686
+## Notes importantes
 
-Prometheus (Metrics)
-http://localhost:9090
-
-Kibana (Logs)
-http://localhost:5601
+- Les microservices sont modulaires et peuvent être déployés indépendamment.
+- Interaction temps réel via Redis Pub/Sub ; messages asynchrones via RabbitMQ.
+- `uv` permet une installation rapide et un démarrage simplifié en développement.
+- Adapter les variables d’environnement et les ports selon votre environnement.
 
