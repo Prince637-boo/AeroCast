@@ -6,6 +6,8 @@ from .otel_setup import init_tracing
 from .routers.baggages import router as baggage_router
 from .routers.admin import router as admin_router
 from .routers.ws import router as ws_router
+from .routers.gps import router as gps_router
+from .routers.trackers import router as trackers_router
 
 # -------------------------------
 # INITIALISATION DE L'APPLICATION
@@ -35,6 +37,9 @@ app.include_router(admin_router)
 
 # Router pour les WebSocket (temps réel)
 app.include_router(ws_router)
+
+app.include_router(gps_router)
+app.include_router(trackers_router)
 
 # -------------------------------
 # POINTS D'EXTENSION

@@ -72,13 +72,13 @@ docker compose up auth
 ```
 
 ### 4. Lancer en local sans Docker
-Se placer à la racine du service désiré et exécuter :
+Se placer dans le dossier /backend/:
 ```bash
-uv run services.<nom_service>.main:app --reload --port <port>
+python -m uvicorn services.<nom_service>.main:app --reload --port <port>
 ```
 Exemple pour le service météo :
 ```bash
-uv run services.weather.main:app --reload --port 8003
+python -m uvicorn services.weather.main:app --reload --port 8003
 ```
 
 ## Tests
