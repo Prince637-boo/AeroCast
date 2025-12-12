@@ -85,7 +85,7 @@ Le service `weather` utilise les données Open Météo, mais la structure est pr
 
 ---
 
-## 🚀 Démarrage Rapide
+## 🚀 Démarrage Rapide.
 
 ### Prérequis
 - Docker / Docker Compose
