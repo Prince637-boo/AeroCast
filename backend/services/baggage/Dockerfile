@@ -3,6 +3,8 @@ ENV PYTHONUNBUFFERED=1
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
+ENV UV_HTTP_TIMEOUT=120
+
 WORKDIR /app
 
 COPY pyproject.toml uv.lock ./

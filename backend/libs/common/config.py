@@ -29,11 +29,11 @@ class Settings(BaseSettings):
         if v is not None:
             return str(v)
         data = info.data
-        return f"postgresql://{data.get('DATABASE_USER')}:{data.get('DATABASE_PASSWORD')}@" \
+        return f"postgresql+asyncpg://{data.get('DATABASE_USER')}:{data.get('DATABASE_PASSWORD')}@" \
                f"{data.get('DATABASE_HOST')}:{data.get('DATABASE_PORT')}/{data.get('DATABASE_NAME')}"
 
     model_config = ConfigDict(
-        env_file=".env.dev",
+        env_file=".env",
         env_file_encoding="utf-8",
         extra="ignore",
     )
